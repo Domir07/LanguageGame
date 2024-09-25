@@ -1,10 +1,17 @@
 #include <stdio.h>
 #include <windows.h>
 
+#define LEVEL_UP_MONEY 100 // 초기 레벨업 비용
+#define MAX_LEVEL 100 // 최대 레벨 설정
+
 // 업적 달성 여부 변수 (0 = 미달성, 1 = 달성)
 int a_100 = 0;
 int a_500 = 0;
 int a_1000 = 0;
+
+// 레벨 변수
+int level = 1; // 현재 레벨
+int level_up_money = LEVEL_UP_MONEY; // 레벨업에 필요한 돈
 
 #pragma region 업적 기능
 void Achievements(int money) // 업적을 체크 함수
@@ -124,6 +131,82 @@ void openShop(int* money, int* click_value)
 }
 #pragma endregion
 
+#pragma region 레벨 기능
+
+void levelUp(int* money) // 돈을 소비해서 레벨업하는 함수
+{
+    if (level >= MAX_LEVEL)
+    {
+        printf("최대 레벨에 도달했습니다! 더 이상 레벨업할 수 없습니다.\n");
+        return;
+    }
+
+    if (*money >= level_up_money) // 레벨업 비용이 충분한지 확인
+    {
+        *money -= level_up_money; // 돈을 소비
+        level++; // 레벨 증가
+        printf("레벨업!\n");
+        printf("현재 레벨: %d\n", level);
+        level_up_money *= 2; // 다음 레벨업 비용 2배 증가
+        printf("다음 레벨업에 필요한 금액: %d원\n", level_up_money);
+    }
+    else
+    {
+        printf("레벨업을 위해 %d원이 더 필요합니다.\n", level_up_money - *money);
+    }
+}
+
+void LevelInfo(int* money) // 레벨 정보   
+{
+    system("cls");
+    printf("-----[ 레벨 정보 ]-----\n");
+    printf("현재 레벨: %d\n", level);
+    printf("다음 레벨업 비용: %d원\n", level_up_money);
+    printf("최대 레벨: %d\n", MAX_LEVEL);
+    printf("\n레벨업: 'L'\n");
+    printf("메뉴로 돌아가기 : 'ESC'\n");
+
+    while (1)
+    {
+        if (GetAsyncKeyState(0x4C) & 0x0001) // 'L' 키를 누르면 레벨업 시도
+        {
+            levelUp(money);
+        }
+
+        if (GetAsyncKeyState(VK_ESCAPE) & 0x0001)
+        {
+            system("cls");
+            break;
+        }
+
+        Sleep(100);
+    }
+}
+#pragma endregion
+
+#pragma region 스킬 해금
+
+void Skill_Open(int* crystal)
+{
+    // 스킬은 던전에서 획득 가능한 크리스탈 재화를 사용한다.
+    system("cls");
+    printf("[보유 크리스탈: %d원]\n", *crystal);
+    printf("\n");
+    printf("-----[ 스킬 목록 ]-----\n");
+    printf(" '1'. [하세기] : 괴물에게 물리 피해를 준다. (1 크리스탈) - 클릭당 1원 추가 벌기.\n");
+    printf("-----------------------\n");
+    printf("\n");
+    printf("구매할 스킬의 번호를 입력해주세요.\n");
+    printf("돌아가기 : 'ESC'\n");
+}
+
+#pragma endregion
+
+
+#pragma region 던전 기능
+
+#pragma endregion
+
 
 #pragma region 메뉴 기능
 void Menu(int* money, int* click_value)
@@ -132,6 +215,7 @@ void Menu(int* money, int* click_value)
     printf("-----[ 메뉴 ]-----\n");
     printf("1. 상점 열기\n");
     printf("2. 업적 확인\n");
+    printf("3. 레벨 메뉴\n");
     printf("메뉴 나가기: 'ESC'\n");
 
     while (1)
@@ -139,7 +223,7 @@ void Menu(int* money, int* click_value)
         // '1' 을 눌렀을 때 상점 열기
         if (GetAsyncKeyState(0x31) & 0x0001)
         {
-            Shop(money, click_value); // 상점 열기
+            openShop(money, click_value); // 상점 열기
             break;
         }
 
@@ -147,6 +231,13 @@ void Menu(int* money, int* click_value)
         if (GetAsyncKeyState(0x32) & 0x0001)
         {
             showAchievements(); // 업적 확인
+            break;
+        }
+
+        // '3' 을 눌렀을 때 레벨 메뉴 열기
+        if (GetAsyncKeyState(0x33) & 0x0001)
+        {
+            LevelInfo(money); // 레벨 메뉴
             break;
         }
 
@@ -162,10 +253,13 @@ void Menu(int* money, int* click_value)
 }
 #pragma endregion
 
+
+
 int main()
 {
     int money = 0;
     int click_value = 1; // 클릭당 벌리는 돈
+    int crystal = 0;
 
     printf("-----[ 조작키 ]-----\n");
     printf("스페이스바 : 돈 벌기\n");
@@ -189,7 +283,7 @@ int main()
         // 메뉴 열기
         if (GetAsyncKeyState(0x4D) & 0x0001) // 'M' 를 눌렀을 때
         {
-            openMenu(&money, &click_value); // 메뉴 열기
+            Menu(&money, &click_value); // 메뉴 열기
         }
 
         Sleep(100);
