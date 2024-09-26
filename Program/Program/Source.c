@@ -1,7 +1,10 @@
 #include <stdio.h>
 #include <windows.h>
 
-#define LEVEL_UP_MONEY 100 // 초기 레벨업 비용
+
+#pragma region 변수 짬뽕
+
+#define LEVEL_UP_MONEY 10 // 초기 레벨업 비용
 #define MAX_LEVEL 100 // 최대 레벨 설정
 
 // 업적 달성 여부 변수 (0 = 미달성, 1 = 달성)
@@ -12,6 +15,23 @@ int a_1000 = 0;
 // 레벨 변수
 int level = 1; // 현재 레벨
 int level_up_money = LEVEL_UP_MONEY; // 레벨업에 필요한 돈
+
+// 플레이어 기본 정보
+char player_name[100];
+int player_maxhp = 100;
+int player_hp = 100;
+int player_attack = 10;
+
+// 괴물 기본 정보
+const char* monster_name = "어린 쥐";
+int monster_level = 1;
+int monster_hp = 50;
+int monster_attack = 5;
+
+// 그 외 재화
+int crystal = 0;
+
+#pragma endregion
 
 #pragma region 업적 기능
 void Achievements(int money) // 업적을 체크 함수
@@ -147,6 +167,10 @@ void levelUp(int* money) // 돈을 소비해서 레벨업하는 함수
         level++; // 레벨 증가
         printf("레벨업!\n");
         printf("현재 레벨: %d\n", level);
+
+        // 레벨업 후 플레이어의 스탯 업데이트
+        PlayerStats_Up();
+
         level_up_money *= 2; // 다음 레벨업 비용 2배 증가
         printf("다음 레벨업에 필요한 금액: %d원\n", level_up_money);
     }
@@ -184,6 +208,43 @@ void LevelInfo(int* money) // 레벨 정보
 }
 #pragma endregion
 
+#pragma region 플레이어 괴물 정보
+
+void PlayerStats_Up()
+{
+    player_attack = 10 + level * 2; // 레벨에 따라 공격력 증가
+    player_maxhp = 100 + level * 10; // 레벨에 따라 최대 체력 증가
+}
+
+void MonsterStats_Up()
+{
+    monster_attack = 5 + level * 2; // 레벨에 따라 몬스터 공격력 증가
+    monster_hp = 50 + level * 5; // 레벨에 따라 몬스터 체력 증가
+}
+
+void PlayerStats()
+{
+    PlayerStats_Up(); // 플레이어의 스탯을 업데이트
+
+    printf("-----[ 플레이어 정보 ]-----\n");
+    printf("이름 : %s\n", player_name);
+    printf("레벨 : %d\n", level);
+    printf("체력 : %d/%d\n", player_hp, player_maxhp);
+    printf("공격력 : %d\n", player_attack);
+    printf("---------------------------\n");
+}
+
+void MonsterStats()
+{
+    printf("-----[ 괴물 정보 ]-----\n");
+    printf("이름 : %s\n", monster_name);
+    printf("레벨 : %d\n", monster_level);
+    printf("체력 : %d\n", monster_hp);
+    printf("공격력 : %d\n", monster_attack);
+    printf("-----------------------\n");
+}
+#pragma endregion
+
 #pragma region 스킬 해금
 
 void Skill_Open(int* crystal)
@@ -205,6 +266,53 @@ void Skill_Open(int* crystal)
 
 #pragma region 던전 기능
 
+void enterDungeon(int* money)
+{
+    system("cls");
+    printf("던전에 입장했습니다.\n");
+
+    Sleep(1000);
+
+    // 몬스터 스탯 초기화
+    MonsterStats_Up();  // 던전 입장 시마다 몬스터 스탯을 초기화
+
+    // 플레이어와 몬스터 정보 로딩
+    PlayerStats();
+    Sleep(1000);
+    MonsterStats();
+    Sleep(1000);
+
+    // 전투 시작
+    while (player_hp > 0 && monster_hp > 0) // 플레이어, 괴물 HP가 0이 될 때까지 반복
+    {
+        // 플레이어 턴
+        printf("%s의 공격! 에게 %d의 피해를 입혔습니다.\n", player_name, player_attack);
+        monster_hp -= player_attack; // 괴물 HP를 플레이어 공격력만큼 뺀다
+        Sleep(1000);
+        if (monster_hp <= 0)
+        {
+            printf("%s을(를) 물리쳤습니다!\n", monster_name);
+            crystal++; // 크리스탈 획득
+            printf("크리스탈을 1개 획득했습니다. 보유 크리스탈 : %d\n", crystal);
+            break;
+        }
+
+        // 몬스터 턴
+        printf("%s의 공격! 플레이어에게 %d의 피해를 입혔습니다.\n", monster_name, monster_attack);
+        player_hp -= monster_attack; // 플레이어 HP를 괴물의 공격력만큼 뺀다
+        if (player_hp <= 0)
+        {
+            printf("%s이(가) 사망했습니다.\n", player_name);
+            exit(0); // 게임 종료
+        }
+
+        Sleep(1000);
+    }
+
+    printf("던전을 나갑니다.\n");
+    printf("아무 키나 눌러주세요.\n");
+}
+
 #pragma endregion
 
 
@@ -213,31 +321,57 @@ void Menu(int* money, int* click_value)
 {
     system("cls");
     printf("-----[ 메뉴 ]-----\n");
-    printf("1. 상점 열기\n");
-    printf("2. 업적 확인\n");
-    printf("3. 레벨 메뉴\n");
+    printf("1. 플레이어 정보\n");
+    printf("2. 레벨업\n");
+    printf("3. 상점\n");
+    printf("4. 업적\n");
+    printf("5. 던전 입장\n");
+    printf("\n");
+    printf("번호를 입력해주세요.\n");
+    printf("------------------\n");
     printf("메뉴 나가기: 'ESC'\n");
 
     while (1)
     {
-        // '1' 을 눌렀을 때 상점 열기
+        // '1' 을 눌렀을 때 플레이어 정보 확인
         if (GetAsyncKeyState(0x31) & 0x0001)
+        {
+            system("cls");
+            printf("-----[ 플레이어 정보 ]-----\n");
+            printf("이름 : %s\n", player_name);
+            printf("레벨 : %d\n", level);
+            printf("체력 : %d/%d\n", player_hp, player_maxhp);
+            printf("공격력 : %d\n", player_attack);
+            printf("---------------------------\n");
+            printf("\n");
+            printf("돌아가려면 'ESC'를 눌러주세요.\n");
+        }
+
+        // '2' 를 눌렀을 때 레벨업 창 열기
+        if (GetAsyncKeyState(0x32) & 0x0001)
+        {
+            LevelInfo(money); // 레벨 메뉴
+            break;
+        }
+
+        // '3' 을 눌렀을 때 상점 열기
+        if (GetAsyncKeyState(0x33) & 0x0001)
         {
             openShop(money, click_value); // 상점 열기
             break;
         }
 
-        // '2' 를 눌렀을 때 업적 확인
-        if (GetAsyncKeyState(0x32) & 0x0001)
+        // '4' 를 눌렀을 때 업적 확인
+        if (GetAsyncKeyState(0x34) & 0x0001)
         {
             showAchievements(); // 업적 확인
             break;
         }
 
-        // '3' 을 눌렀을 때 레벨 메뉴 열기
-        if (GetAsyncKeyState(0x33) & 0x0001)
+        // '5' 를 눌렀을 때 던전 입장
+        if (GetAsyncKeyState(0x35) & 0x0001)
         {
-            LevelInfo(money); // 레벨 메뉴
+            enterDungeon(money); // 던전 입장
             break;
         }
 
@@ -253,17 +387,24 @@ void Menu(int* money, int* click_value)
 }
 #pragma endregion
 
-
-
 int main()
 {
     int money = 0;
     int click_value = 1; // 클릭당 벌리는 돈
-    int crystal = 0;
 
+    // 플레이어 이름 설정
+    printf("플레이어의 이름을 입력하세요 : \n");
+    printf("\n");
+    printf("한글로 입력하면 짧은 튜토리얼이 스킵되는 현상이 있습니다!\n");
+
+    char name[100];
+    scanf_s("%s", player_name, 100);
+
+    printf("%s님, 게임을 시작합니다!\n", player_name);
+    printf("\n");
     printf("-----[ 조작키 ]-----\n");
     printf("스페이스바 : 돈 벌기\n");
-    printf("M : 메뉴 열기 (상점/업적)\n");
+    printf("M : 메뉴 열기\n");
 
     while (1)
     {
@@ -274,7 +415,7 @@ int main()
             money += click_value;
             printf("금액 : %d\n", money);
             printf("스페이스바 : 돈 벌기\n");
-            printf("M : 메뉴 열기 (상점/업적)\n");
+            printf("M : 메뉴 열기\n");
 
             // 업적 체크 함수 호출
             Achievements(money);
