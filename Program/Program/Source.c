@@ -1,10 +1,9 @@
 #include <stdio.h>
 #include <windows.h>
 
-
 #pragma region 변수 짬뽕
 
-#define LEVEL_UP_MONEY 10 // 초기 레벨업 비용
+#define LEVEL_UP_MONEY 100 // 초기 레벨업 비용
 #define MAX_LEVEL 100 // 최대 레벨 설정
 
 // 업적 달성 여부 변수 (0 = 미달성, 1 = 달성)
@@ -151,6 +150,43 @@ void openShop(int* money, int* click_value)
 }
 #pragma endregion
 
+#pragma region 플레이어 괴물 정보
+
+void PlayerStats_Up()
+{
+    player_attack = 10 + level * 2; // 레벨에 따라 공격력 증가
+    player_maxhp = 100 + level * 10; // 레벨에 따라 최대 체력 증가
+}
+
+void MonsterStats_Up()
+{
+    monster_attack = 5 + level * 2; // 레벨에 따라 몬스터 공격력 증가
+    monster_hp = 50 + level * 5; // 레벨에 따라 몬스터 체력 증가
+}
+
+void PlayerStats()
+{
+    PlayerStats_Up(); // 플레이어의 스탯을 업데이트
+
+    printf("-----[ 플레이어 정보 ]-----\n");
+    printf("이름 : %s\n", player_name);
+    printf("레벨 : %d\n", level);
+    printf("체력 : %d/%d\n", player_hp, player_maxhp);
+    printf("공격력 : %d\n", player_attack);
+    printf("---------------------------\n");
+}
+
+void MonsterStats()
+{
+    printf("-----[ 괴물 정보 ]-----\n");
+    printf("이름 : %s\n", monster_name);
+    printf("레벨 : %d\n", monster_level);
+    printf("체력 : %d\n", monster_hp);
+    printf("공격력 : %d\n", monster_attack);
+    printf("-----------------------\n");
+}
+#pragma endregion
+
 #pragma region 레벨 기능
 
 void levelUp(int* money) // 돈을 소비해서 레벨업하는 함수
@@ -208,43 +244,6 @@ void LevelInfo(int* money) // 레벨 정보
 }
 #pragma endregion
 
-#pragma region 플레이어 괴물 정보
-
-void PlayerStats_Up()
-{
-    player_attack = 10 + level * 2; // 레벨에 따라 공격력 증가
-    player_maxhp = 100 + level * 10; // 레벨에 따라 최대 체력 증가
-}
-
-void MonsterStats_Up()
-{
-    monster_attack = 5 + level * 2; // 레벨에 따라 몬스터 공격력 증가
-    monster_hp = 50 + level * 5; // 레벨에 따라 몬스터 체력 증가
-}
-
-void PlayerStats()
-{
-    PlayerStats_Up(); // 플레이어의 스탯을 업데이트
-
-    printf("-----[ 플레이어 정보 ]-----\n");
-    printf("이름 : %s\n", player_name);
-    printf("레벨 : %d\n", level);
-    printf("체력 : %d/%d\n", player_hp, player_maxhp);
-    printf("공격력 : %d\n", player_attack);
-    printf("---------------------------\n");
-}
-
-void MonsterStats()
-{
-    printf("-----[ 괴물 정보 ]-----\n");
-    printf("이름 : %s\n", monster_name);
-    printf("레벨 : %d\n", monster_level);
-    printf("체력 : %d\n", monster_hp);
-    printf("공격력 : %d\n", monster_attack);
-    printf("-----------------------\n");
-}
-#pragma endregion
-
 #pragma region 스킬 해금
 
 void Skill_Open(int* crystal)
@@ -285,9 +284,40 @@ void enterDungeon(int* money)
     // 전투 시작
     while (player_hp > 0 && monster_hp > 0) // 플레이어, 괴물 HP가 0이 될 때까지 반복
     {
-        // 플레이어 턴
-        printf("%s의 공격! 에게 %d의 피해를 입혔습니다.\n", player_name, player_attack);
-        monster_hp -= player_attack; // 괴물 HP를 플레이어 공격력만큼 뺀다
+        int skill_choice = 0;
+
+        // 플레이어와 몬스터의 현재 체력 상태 표시
+        printf("현재 상태: \n");
+        printf("플레이어 체력: %d/%d\n", player_hp, player_maxhp);
+        printf("몬스터 체력: %d/%d\n", monster_hp, 50 + monster_level * 5); // 기본 몬스터 체력
+
+        // 플레이어의 스킬 선택
+        printf("\n어떤 스킬을 사용하시겠습니까?\n");
+        printf("1. 일반 공격\n");
+        printf("2. 회복 (플레이어 체력 20 회복)\n");
+        printf("선택: ");
+        scanf_s("%d", &skill_choice);
+
+        system("cls");
+
+        // 스킬 선택에 따른 행동
+        if (skill_choice == 1) // 일반 공격
+        {
+            printf("%s의 공격! %s에게 %d의 피해를 입혔습니다.\n", player_name, monster_name, player_attack);
+            monster_hp -= player_attack; // 괴물 HP를 플레이어 공격력만큼 뺀다
+        }
+        else if (skill_choice == 2) // 회복
+        {
+            player_hp += 20;
+            if (player_hp > player_maxhp) player_hp = player_maxhp; // 최대 체력 넘지 않도록 조정
+            printf("%s가 체력을 20 회복했습니다! 현재 체력: %d/%d\n", player_name, player_hp, player_maxhp);
+        }
+        else // 잘못된 입력 처리
+        {
+            printf("잘못된 선택입니다. 다시 시도해주세요.\n");
+            continue; // 몬스터의 턴 없이 다시 스킬 선택으로 돌아감
+        }
+
         Sleep(1000);
         if (monster_hp <= 0)
         {
@@ -315,7 +345,6 @@ void enterDungeon(int* money)
 
 #pragma endregion
 
-
 #pragma region 메뉴 기능
 void Menu(int* money, int* click_value)
 {
@@ -329,7 +358,7 @@ void Menu(int* money, int* click_value)
     printf("\n");
     printf("번호를 입력해주세요.\n");
     printf("------------------\n");
-    printf("메뉴 나가기: 'ESC'\n");
+    printf("메뉴 나가기 / 돈 벌기 : 'ESC'\n");
 
     while (1)
     {
@@ -393,19 +422,17 @@ int main()
     int click_value = 1; // 클릭당 벌리는 돈
 
     // 플레이어 이름 설정
-    printf("플레이어의 이름을 입력하세요 : \n");
+    printf("현재 이름 설정할때 m이나 ㅡ를 입력하면 간단한 튜토리얼이 스킵되고 메뉴로 이동되는 현상이 있습니다!\n");
     printf("\n");
-    printf("한글로 입력하면 짧은 튜토리얼이 스킵되는 현상이 있습니다!\n");
+    printf("플레이어의 이름을 입력하세요 : \n");
 
-    char name[100];
     scanf_s("%s", player_name, 100);
 
     printf("%s님, 게임을 시작합니다!\n", player_name);
     printf("\n");
     printf("-----[ 조작키 ]-----\n");
-    printf("스페이스바 : 돈 벌기\n");
-    printf("M : 메뉴 열기\n");
-
+    printf("스페이스바 : 돈 벌기\n");  
+    printf("M : 메뉴 열기\n");   
     while (1)
     {
         // 스페이스바로 돈 벌기
