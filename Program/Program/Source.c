@@ -23,6 +23,7 @@ int player_attack = 10;
 
 // 괴물 기본 정보
 const char* monster_name = "어린 쥐";
+int monster_maxhp = 50;
 int monster_level = 1;
 int monster_hp = 50;
 int monster_attack = 5;
@@ -31,6 +32,14 @@ int monster_attack = 5;
 int crystal = 0;
 
 #pragma endregion
+
+#pragma region 스킬 구입 여부 변수
+
+int skill_hasegi = 0; // 하세기 스킬 구입 여부
+int skill_soriegedon = 0;
+
+#pragma endregion
+
 
 #pragma region 업적 기능
 void Achievements(int money) // 업적을 체크 함수
@@ -181,7 +190,7 @@ void MonsterStats()
     printf("-----[ 괴물 정보 ]-----\n");
     printf("이름 : %s\n", monster_name);
     printf("레벨 : %d\n", monster_level);
-    printf("체력 : %d\n", monster_hp);
+    printf("체력 : %d/%d\n", monster_hp, monster_maxhp);
     printf("공격력 : %d\n", monster_attack);
     printf("-----------------------\n");
 }
@@ -248,19 +257,107 @@ void LevelInfo(int* money) // 레벨 정보
 
 void Skill_Open(int* crystal)
 {
-    // 스킬은 던전에서 획득 가능한 크리스탈 재화를 사용한다.
     system("cls");
-    printf("[보유 크리스탈: %d원]\n", *crystal);
+    printf("[보유 크리스탈: %d]\n", *crystal);
     printf("\n");
     printf("-----[ 스킬 목록 ]-----\n");
-    printf(" '1'. [하세기] : 괴물에게 물리 피해를 준다. (1 크리스탈) - 클릭당 1원 추가 벌기.\n");
+    printf(" '1'. [하세기] : 괴물에게 공격력(+10)의 피해를 준다. (3 크리스탈)\n");
+    printf(" '2'. [소리에게돈] : 괴물에게 공격력(+20)의 피해를 준다. (10 크리스탈)\n");
     printf("-----------------------\n");
     printf("\n");
-    printf("구매할 스킬의 번호를 입력해주세요.\n");
-    printf("돌아가기 : 'ESC'\n");
+
+    int shop_num = 0;
+    printf("구매할 스킬의 번호를 입력해주세요 : ");
+    scanf_s("%d", &shop_num);
+
+    if (shop_num == 1)
+    {
+        if (*crystal >= 3)
+        {
+            *crystal -= 3;
+            skill_hasegi = 1; // 하세기 스킬 구입 완료
+            printf("[하세기] 스킬을 획득했습니다!\n");
+        }
+        else
+        {
+            printf("크리스탈이 부족합니다.\n");
+        }
+    }
+
+    if (shop_num == 2)
+    {
+        if (*crystal >= 10)
+        {
+            *crystal -= 10;
+            skill_soriegedon = 1;
+            printf("[소리에게돈] 스킬을 획득했습니다!\n");
+        }
+        else
+        {
+            printf("크리스탈이 부족합니다.\n");
+        }
+    }
 }
 
 #pragma endregion
+
+#pragma region 스킬창
+
+void Skill_Use()
+{
+    system("cls");
+
+    printf("사용 가능한 스킬 목록:\n");
+
+    // 보유한 스킬에 따라서 출력
+    if (skill_hasegi == 1)
+    {
+        printf(" '1'. [하세기] : 괴물에게 공격력(+10)의 피해를 준다.\n");
+    }
+
+    // 스킬이 없다면 출력
+    if (skill_hasegi == 0)
+    {
+        printf("보유한 스킬이 없습니다.\n");
+    }
+
+    printf("\n스킬을 사용하지 않으려면 'ESC'를 누르세요.\n");
+
+    while (1)
+    {
+        // '1' 을 눌렀을 때 하세기 스킬 사용
+        if (GetAsyncKeyState(0x31) & 0x0001 && skill_hasegi == 1)
+        {
+            int hasegi_damage = player_attack + 10;
+            printf("%s가 [하세기] 스킬을 사용해 %s에게 %d의 피해를 입혔습니다!\n", player_name, monster_name, hasegi_damage);
+            monster_hp -= hasegi_damage;
+            break;
+        }
+        // '1' 을 눌렀을 때 하세기 스킬 사용
+        if (GetAsyncKeyState(0x32) & 0x0001 && skill_soriegedon == 2)
+        {
+            int soriegedon_damage = player_attack + 10;
+            printf("%s가 [하세기] 스킬을 사용해 %s에게 %d의 피해를 입혔습니다!\n", player_name, monster_name, soriegedon_damage);
+            monster_hp -= soriegedon_damage;
+            break;
+        }
+
+        // 'ESC' 를 눌렀을 때 스킬 창 나가기
+        if (GetAsyncKeyState(VK_ESCAPE) & 0x0001)
+        {
+            printf("스킬 창을 닫습니다.\n");
+            Sleep(1000);
+            break;
+        }
+
+        Sleep(100);
+    }
+
+    system("cls");
+}
+
+#pragma endregion
+
 
 
 #pragma region 던전 기능
@@ -284,6 +381,8 @@ void enterDungeon(int* money)
     // 전투 시작
     while (player_hp > 0 && monster_hp > 0) // 플레이어, 괴물 HP가 0이 될 때까지 반복
     {
+        while (getchar() != '\n');
+
         int skill_choice = 0;
 
         // 플레이어와 몬스터의 현재 체력 상태 표시
@@ -295,7 +394,9 @@ void enterDungeon(int* money)
         printf("\n어떤 스킬을 사용하시겠습니까?\n");
         printf("1. 일반 공격\n");
         printf("2. 회복 (플레이어 체력 20 회복)\n");
-        printf("선택: ");
+        printf("3. 스킬 목록\n");
+        printf("0. 전투 이탈\n");
+        printf("번호를 입력해주세요 : ");
         scanf_s("%d", &skill_choice);
 
         system("cls");
@@ -311,6 +412,18 @@ void enterDungeon(int* money)
             player_hp += 20;
             if (player_hp > player_maxhp) player_hp = player_maxhp; // 최대 체력 넘지 않도록 조정
             printf("%s가 체력을 20 회복했습니다! 현재 체력: %d/%d\n", player_name, player_hp, player_maxhp);
+        }
+        else if (skill_choice == 3 && skill_hasegi == 1) // 스킬 목록
+        {
+            int hasegi_damage = player_attack + 10;
+            printf("%s가 [하세기] 스킬을 사용해 %s에게 %d의 피해를 입혔습니다!\n", player_name, monster_name, hasegi_damage);
+            monster_hp -= hasegi_damage;
+        }
+        else if (skill_choice == 4) // 도망
+        {
+            printf("전투에서 이탈합니다.\n");
+            Sleep(1000);
+            break;
         }
         else // 잘못된 입력 처리
         {
