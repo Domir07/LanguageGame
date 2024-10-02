@@ -10,6 +10,7 @@
 int a_100 = 0;
 int a_500 = 0;
 int a_1000 = 0;
+int a_10000 = 0;
 
 // 레벨 변수
 int level = 1; // 현재 레벨
@@ -57,7 +58,12 @@ void Achievements(int money) // 업적을 체크 함수
     if (money >= 1000 && a_1000 == 0)
     {
         a_1000 = 1;
-        printf("업적 달성: 1000원 달성!\n");
+        printf("업적 달성: 만 원 달성!\n");
+    }
+    if (money >= 10000 && a_10000 == 0)
+    {
+        a_1000 = 1;
+        printf("업적 달성: 만 원 달성!\n");
     }
 }
 
@@ -95,6 +101,16 @@ void showAchievements() // 업적 달성 출력
     {
         printf(" [미달성] 1000원 벌기\n");
     }
+    
+    // 만 원 업적
+    if (a_1000 == 1)
+    {
+        printf(" [달성] 만 원 벌기\n");
+    }
+    else
+    {
+        printf(" [미달성] 만 원 벌기\n");
+    }
 
     printf("\n메뉴로 돌아가기 : 'ESC'\n");
 
@@ -106,14 +122,14 @@ void showAchievements() // 업적 달성 출력
             system("cls");
             break;
         }
-        Sleep(100); // 너무 자주 루프를 돌지 않도록 대기
+        Sleep(100);
     }
 }
 #pragma endregion
 
 #pragma region 상점 기능
 // 상점 기능 함수
-void openShop(int* money, int* click_value)
+void openShop(int* money, int* click_value, int *player_hp)
 {
     system("cls");
     printf("상점에 입장했습니다.\n");
@@ -122,6 +138,7 @@ void openShop(int* money, int* click_value)
     printf("\n");
     printf("-----[ 상점 ]-----\n");
     printf(" '1'. 클릭당 수입 증가 (100원) - 클릭당 1원 추가 벌기.\n");
+    printf(" '2'. 회복 물약 (50원) - 플레이어 체력 20 회복.\n");
     printf("------------------\n");
     printf("\n");
     printf("구매할 상품의 번호를 입력해주세요.\n");
@@ -137,6 +154,21 @@ void openShop(int* money, int* click_value)
                 *money -= 100;
                 (*click_value)++;
                 printf("<클릭당 수입이 증가했습니다!>\n");
+            }
+            else
+            {
+                printf("돈이 부족합니다!\n");
+            }
+        }
+
+        if (GetAsyncKeyState(0x32) & 0x0001)
+        {
+            if (*money >= 50)
+            {
+                *money -= 50;
+                *player_hp += 20;
+                if (*player_hp > player_maxhp) *player_hp = player_maxhp; // 최대 체력을 넘지 않도록
+                printf("<체력이 회복되었습니다! 현재 체력: %d/%d>\n", *player_hp, player_maxhp);
             }
             else
             {
@@ -170,7 +202,8 @@ void PlayerStats_Up()
 void MonsterStats_Up()
 {
     monster_attack = 5 + level * 2; // 레벨에 따라 몬스터 공격력 증가
-    monster_hp = 50 + level * 5; // 레벨에 따라 몬스터 체력 증가
+    monster_hp = 50 + level * 10;
+    monster_maxhp = 50 + level * 10;// 레벨에 따라 몬스터 체력 증가
 }
 
 void PlayerStats()
@@ -358,8 +391,6 @@ void Skill_Use()
 
 #pragma endregion
 
-
-
 #pragma region 던전 기능
 
 void enterDungeon(int* money)
@@ -415,9 +446,7 @@ void enterDungeon(int* money)
         }
         else if (skill_choice == 3 && skill_hasegi == 1) // 스킬 목록
         {
-            int hasegi_damage = player_attack + 10;
-            printf("%s가 [하세기] 스킬을 사용해 %s에게 %d의 피해를 입혔습니다!\n", player_name, monster_name, hasegi_damage);
-            monster_hp -= hasegi_damage;
+            Skill_Use();
         }
         else if (skill_choice == 4) // 도망
         {
@@ -499,7 +528,7 @@ void Menu(int* money, int* click_value)
         // '3' 을 눌렀을 때 상점 열기
         if (GetAsyncKeyState(0x33) & 0x0001)
         {
-            openShop(money, click_value); // 상점 열기
+            openShop(money, click_value, player_hp, player_maxhp); // 상점 열기
             break;
         }
 
@@ -540,6 +569,13 @@ int main()
     printf("플레이어의 이름을 입력하세요 : \n");
 
     scanf_s("%s", player_name, 100);
+
+    if (strlen(player_name) < 2)
+    {
+        printf("이름이 너무 짧습니다! 다시 입력해주세요.\n");
+        scanf_s("%s", player_name, 100);
+    }
+
 
     printf("%s님, 게임을 시작합니다!\n", player_name);
     printf("\n");
