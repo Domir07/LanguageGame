@@ -40,7 +40,8 @@ int crystal = 0;
 #pragma region 스킬 구입 여부 변수
 
 int skill_hasegi = 0; // 하세기 스킬 구입 여부
-int skill_soriegedon = 0;
+int skill_soriegedon = 0; // 소리에게돈
+int skill_onesword = 0; // 일도양단
 
 #pragma endregion
 
@@ -48,6 +49,7 @@ int skill_soriegedon = 0;
 
 #define HASEGI_MANA_COST 10 // 하세기 마나 소모량
 #define SORIEGEDON_MANA_COST 20 // 소리에게돈 마나 소모량
+#define ONE_SWORD_MANA_COST 100 // 일도양단
 
 #pragma endregion
 
@@ -244,12 +246,6 @@ void showAchievements() // 업적 달성 출력
 }
 #pragma endregion
 
-
-
-
-
-#pragma region 상점 기능
-
 #pragma region 상점에 딸린 장비 상점
 
 void weaponShop(int* money)
@@ -262,19 +258,19 @@ void weaponShop(int* money)
     printf("-----[ 상점 ]-----\n");
 
     // 녹슨 검 상태 출력
-    if (rusty_sword_bought == 0)
+    if (p_sword == 0)
         printf(" '1'. 녹슨 검 (500원) : 공격력 + 5\n");
     else
         printf(" '1'. 녹슨 검 [구매 완료]\n");
 
     // 패딩 상태 출력
-    if (padding_bought == 0)
+    if (p_padding == 0)
         printf(" '2'. 패딩 (1000원) : 체력 + 20\n");
     else
         printf(" '2'. 패딩 [구매 완료]\n");
 
     // 두꺼운 책 상태 출력
-    if (thick_book_bought == 0)
+    if (p_book == 0)
         printf(" '3'. 두꺼운 책 (1000원) : 마나 + 20 \n");
     else
         printf(" '3'. 두꺼운 책 [구매 완료]\n");
@@ -289,7 +285,7 @@ void weaponShop(int* money)
         // '1' 을 눌렀을 때, 녹슨 검 구입
         if (GetAsyncKeyState(0x31) & 0x0001)
         {
-            if (rusty_sword_bought == 1)  // 이미 구매한 경우
+            if (p_sword == 1)  // 이미 구매한 경우
             {
                 printf("이미 구매한 장비입니다!\n");
             }
@@ -297,7 +293,7 @@ void weaponShop(int* money)
             {
                 *money -= 500;
                 player_attack += 5;  // 공격력 증가
-                rusty_sword_bought = 1;  // 장비 구매 완료
+                p_sword = 1;  // 장비 구매 완료
                 printf("녹슨 검을 구입했습니다! 공격력이 5 증가했습니다.\n");
             }
             else
@@ -309,7 +305,7 @@ void weaponShop(int* money)
         // '2' 를 눌렀을 때, 패딩 구입
         if (GetAsyncKeyState(0x32) & 0x0001)
         {
-            if (padding_bought == 1)  // 이미 구매한 경우
+            if (p_padding == 1)  // 이미 구매한 경우
             {
                 printf("이미 구매한 장비입니다!\n");
             }
@@ -318,7 +314,7 @@ void weaponShop(int* money)
                 *money -= 1000;
                 player_maxhp += 20;  // 최대체력 증가
                 player_hp = player_maxhp;  // 최대체력 회복
-                padding_bought = 1;  // 장비 구매 완료
+                p_padding = 1;  // 장비 구매 완료
                 printf("패딩을 구입했습니다! 체력이 20 증가했습니다.\n");
             }
             else
@@ -330,7 +326,7 @@ void weaponShop(int* money)
         // '3' 을 눌렀을 때, 두꺼운 책 구입
         if (GetAsyncKeyState(0x33) & 0x0001)
         {
-            if (thick_book_bought == 1)  // 이미 구매한 경우
+            if (p_book == 1)  // 이미 구매한 경우
             {
                 printf("이미 구매한 장비입니다!\n");
             }
@@ -339,7 +335,7 @@ void weaponShop(int* money)
                 *money -= 1000;
                 player_maxmp += 20;  // 최대마나 증가
                 player_mp = player_maxmp;  // 마나 회복
-                thick_book_bought = 1;  // 장비 구매 완료
+                p_book = 1;  // 장비 구매 완료
                 printf("두꺼운 책을 구입했습니다! 마나가 20 증가했습니다.\n");
             }
             else
@@ -364,6 +360,155 @@ void weaponShop(int* money)
 
 #pragma endregion
 
+#pragma region 스킬 해금
+
+void Skill_Open(int* crystal)
+{
+    system("cls");
+    printf("[보유 크리스탈: %d]\n", *crystal);
+    printf("\n");
+    printf("-----[ 스킬 목록 ]-----\n");
+    printf(" '1'. [하세기] : 20 마나를 소모해, 괴물에게 공격력(+10)의 피해를 준다. (1 크리스탈)\n");
+    printf(" '2'. [소리에게돈] : 30 마나를 소모해, 괴물에게 공격력(+20)의 피해를 준다. (5 크리스탈)\n");
+    printf(" '3'. [일도양단] : 100 마나를 소모해, 괴물에게 공격력(+100)의 피해를 준다. (10 크리스탈)\n");
+    printf("-----------------------\n");
+    printf("\n");
+
+    int shop_num = 0;
+    printf("구매할 스킬의 번호를 입력해주세요 : ");
+    scanf_s("%d", &shop_num);
+
+    if (shop_num == 1)
+    {
+        if (*crystal >= 1)
+        {
+            *crystal -= 1;
+            skill_hasegi = 1; // 하세기 스킬 구입 완료
+            printf("[하세기] 스킬을 획득했습니다!\n");
+        }
+        else
+        {
+            printf("크리스탈이 부족합니다.\n");
+        }
+    }
+
+    if (shop_num == 2)
+    {
+        if (*crystal >= 5)
+        {
+            *crystal -= 5;
+            skill_soriegedon = 1;
+            printf("[소리에게돈] 스킬을 획득했습니다!\n");
+        }
+        else
+        {
+            printf("크리스탈이 부족합니다.\n");
+        }
+    }
+
+    if (shop_num == 3)
+    {
+        if (*crystal >= 10)
+        {
+            *crystal -= 10;
+            skill_onesword = 1;
+            printf("[일도양단] 스킬을 획득했습니다!\n");
+        }
+        else
+        {
+            printf("크리스탈이 부족합니다.\n");
+        }
+    }
+}
+
+#pragma endregion
+
+#pragma region 스킬창
+
+// 사용할 수 있는 스킬이 없으면 창을 열지 않음.
+int checkAvailableSkills()
+{
+    return skill_hasegi || skill_soriegedon; // 하나라도 보유한 스킬이 있으면 true(1), 없으면 false(0)
+}
+
+void Skill_Use()
+{
+    system("cls");
+
+    printf("사용 가능한 스킬 목록:\n");
+
+    // 스킬이 하나도 없을 때 메시지 출력
+    if (!checkAvailableSkills()) {
+        printf("사용할 수 있는 스킬이 없습니다.\n");
+        Sleep(2000); // 2초간 대기 후 스킬창 닫기
+        system("cls");
+        return;
+    }
+
+    // 보유한 스킬에 따라서 출력
+    if (skill_hasegi == 1)
+    {
+        printf(" '1'. [하세기] : 괴물에게 공격력(+10)의 피해를 준다. (소모 마나: %d)\n", HASEGI_MANA_COST);
+    }
+    if (skill_soriegedon == 1)
+    {
+        printf(" '2'. [소리에게돈] : 괴물에게 공격력(+20)의 피해를 준다. (소모 마나: %d)\n", SORIEGEDON_MANA_COST);
+    }
+    if (skill_soriegedon == 1)
+    {
+        printf(" '3'. [일도양단] : 괴물에게 공격력(+100)의 피해를 준다. (소모 마나: %d)\n", ONE_SWORD_MANA_COST);
+    }
+
+    printf("\n스킬을 사용하지 않으려면 'ESC'를 누르세요.\n");
+
+    while (1) {
+        // '1' 을 눌렀을 때 하세기 스킬 사용
+        if (GetAsyncKeyState(0x31) & 0x0001 && skill_hasegi == 1) {
+            if (player_mp >= HASEGI_MANA_COST) {
+                int hasegi_damage = player_attack + 10;
+                printf("%s가 [하세기] 스킬을 사용해 %s에게 %d의 피해를 입혔습니다!\n", player_name, monster_name, hasegi_damage);
+                monster_hp -= hasegi_damage;
+                player_mp -= HASEGI_MANA_COST; // 마나 소모
+                printf("남은 마나: %d/%d\n", player_mp, player_maxmp);
+                break;
+            }
+            else {
+                printf("마나가 부족합니다! (현재 마나: %d)\n", player_mp);
+            }
+        }
+
+        // '2' 을 눌렀을 때 소리에게돈 스킬 사용
+        if (GetAsyncKeyState(0x32) & 0x0001 && skill_soriegedon == 1) {
+            if (player_mp >= SORIEGEDON_MANA_COST) {
+                int soriegedon_damage = player_attack + 20;
+                printf("%s가 [소리에게돈] 스킬을 사용해 %s에게 %d의 피해를 입혔습니다!\n", player_name, monster_name, soriegedon_damage);
+                monster_hp -= soriegedon_damage;
+                player_mp -= SORIEGEDON_MANA_COST; // 마나 소모
+                printf("남은 마나: %d/%d\n", player_mp, player_maxmp);
+                break;
+            }
+            else {
+                printf("마나가 부족합니다! (현재 마나: %d)\n", player_mp);
+            }
+        }
+
+        // 'ESC' 를 눌렀을 때 스킬 창 나가기
+        if (GetAsyncKeyState(VK_ESCAPE) & 0x0001) {
+            printf("스킬 창을 닫습니다.\n");
+            Sleep(1000);
+            break;
+        }
+
+        Sleep(100);
+    }
+
+    system("cls");
+}
+
+#pragma endregion
+
+#pragma region 상점 기능
+
 // 상점 기능 함수
 void openShop(int* money, int* click_value, int *player_hp)
 {
@@ -375,10 +520,11 @@ void openShop(int* money, int* click_value, int *player_hp)
     printf("-----[ 상점 ]-----\n");
     printf(" '1'. 클릭당 수입 증가 (100원) : 클릭당 1원 추가 벌기.\n");
     printf(" '2'. 회복 물약 (50원) : 플레이어 체력 20 회복.\n");
-    printf(" '3'. 무기 상점 \n");
+    printf(" '3'. 무기 상점 열기.\n");
+    printf(" '4'. 스킬 상점 열기.\n");
     printf("------------------\n");
     printf("\n");
-    printf("구매할 상품의 번호를 입력해주세요.\n");
+    printf("선택, 구매할 상품의 번호를 입력해주세요.\n");
     printf("상점 나가기 : 'ESC'\n");
 
     while (1)
@@ -417,7 +563,13 @@ void openShop(int* money, int* click_value, int *player_hp)
         // '3' 를 눌렀을 때 무기 상점 입장
         if (GetAsyncKeyState(0x33) & 0x0001)
         {
+            weaponShop(*money);
+        }
 
+        // '4' 를 눌렀을 때 스킬 상점 입장
+        if (GetAsyncKeyState(0x34) & 0x0001)
+        {
+            Skill_Open(&crystal);
         }
 
         // 'ESC' 키를 눌렀을 때 상점 나가기
@@ -435,127 +587,6 @@ void openShop(int* money, int* click_value, int *player_hp)
 }
 #pragma endregion
 
-#pragma region 스킬 해금
-
-void Skill_Open(int* crystal)
-{
-    system("cls");
-    printf("[보유 크리스탈: %d]\n", *crystal);
-    printf("\n");
-    printf("-----[ 스킬 목록 ]-----\n");
-    printf(" '1'. [하세기] : 괴물에게 공격력(+10)의 피해를 준다. (3 크리스탈)\n");
-    printf(" '2'. [소리에게돈] : 괴물에게 공격력(+20)의 피해를 준다. (10 크리스탈)\n");
-    printf("-----------------------\n");
-    printf("\n");
-
-    int shop_num = 0;
-    printf("구매할 스킬의 번호를 입력해주세요 : ");
-    scanf_s("%d", &shop_num);
-
-    if (shop_num == 1)
-    {
-        if (*crystal >= 3)
-        {
-            *crystal -= 3;
-            skill_hasegi = 1; // 하세기 스킬 구입 완료
-            printf("[하세기] 스킬을 획득했습니다!\n");
-        }
-        else
-        {
-            printf("크리스탈이 부족합니다.\n");
-        }
-    }
-
-    if (shop_num == 2)
-    {
-        if (*crystal >= 10)
-        {
-            *crystal -= 10;
-            skill_soriegedon = 1;
-            printf("[소리에게돈] 스킬을 획득했습니다!\n");
-        }
-        else
-        {
-            printf("크리스탈이 부족합니다.\n");
-        }
-    }
-}
-
-#pragma endregion
-
-#pragma region 스킬창
-
-void Skill_Use()
-{
-    system("cls");
-
-    printf("사용 가능한 스킬 목록:\n");
-
-    // 보유한 스킬에 따라서 출력
-    if (skill_hasegi == 1)
-    {
-        printf(" '1'. [하세기] : 괴물에게 공격력(+10)의 피해를 준다. (소모 마나: %d)\n", HASEGI_MANA_COST);
-    }
-    if (skill_soriegedon == 1)
-    {
-        printf(" '2'. [소리에게돈] : 괴물에게 공격력(+20)의 피해를 준다. (소모 마나: %d)\n", SORIEGEDON_MANA_COST);
-    }
-
-    printf("\n스킬을 사용하지 않으려면 'ESC'를 누르세요.\n");
-
-    while (1)
-    {
-        // '1' 을 눌렀을 때 하세기 스킬 사용
-        if (GetAsyncKeyState(0x31) & 0x0001 && skill_hasegi == 1)
-        {
-            if (player_mp >= HASEGI_MANA_COST)
-            {
-                int hasegi_damage = player_attack + 10;
-                printf("%s가 [하세기] 스킬을 사용해 %s에게 %d의 피해를 입혔습니다!\n", player_name, monster_name, hasegi_damage);
-                monster_hp -= hasegi_damage;
-                player_mp -= HASEGI_MANA_COST; // 마나 소모
-                printf("남은 마나: %d/%d\n", player_mp, player_maxmp);
-                break;
-            }
-            else
-            {
-                printf("마나가 부족합니다! (현재 마나: %d)\n", player_mp);
-            }
-        }
-        // '2' 을 눌렀을 때 소리에게돈 스킬 사용
-        if (GetAsyncKeyState(0x32) & 0x0001 && skill_soriegedon == 1)
-        {
-            if (player_mp >= SORIEGEDON_MANA_COST)
-            {
-                int soriegedon_damage = player_attack + 20;
-                printf("%s가 [소리에게돈] 스킬을 사용해 %s에게 %d의 피해를 입혔습니다!\n", player_name, monster_name, soriegedon_damage);
-                monster_hp -= soriegedon_damage;
-                player_mp -= SORIEGEDON_MANA_COST; // 마나 소모
-                printf("남은 마나: %d/%d\n", player_mp, player_maxmp);
-                break;
-            }
-            else
-            {
-                printf("마나가 부족합니다! (현재 마나: %d)\n", player_mp);
-            }
-        }
-
-        // 'ESC' 를 눌렀을 때 스킬 창 나가기
-        if (GetAsyncKeyState(VK_ESCAPE) & 0x0001)
-        {
-            printf("스킬 창을 닫습니다.\n");
-            Sleep(1000);
-            break;
-        }
-
-        Sleep(100);
-    }
-
-    system("cls");
-}
-
-#pragma endregion
-
 #pragma region 던전 기능
 
 void enterDungeon(int* money)
@@ -566,7 +597,6 @@ void enterDungeon(int* money)
     Sleep(1000);
 
     PlayerStats_Up();
-    // 몬스터 스탯 초기화
     MonsterStats_Up();  // 던전 입장 시마다 몬스터 스탯을 초기화
 
     // 플레이어와 몬스터 정보 로딩
@@ -576,66 +606,59 @@ void enterDungeon(int* money)
     Sleep(1000);
 
     // 전투 시작
-    while (player_hp > 0 && monster_hp > 0) // 플레이어, 괴물 HP가 0이 될 때까지 반복
-    {
-        while (getchar() != '\n');
-
+    while (player_hp > 0 && monster_hp > 0) {
         int skill_choice = 0;
 
-        // 플레이어와 몬스터의 현재 체력 상태 표시
         printf("현재 상태: \n");
         printf("플레이어 체력: %d/%d\n", player_hp, player_maxhp);
-        printf("플레이어 마나: %d/%d\n", player_mp, player_maxmp);  // 마나 상태도 표시
-        printf("몬스터 체력: %d/%d\n", monster_hp, monster_maxhp); // 몬스터 체력 상태
+        printf("플레이어 마나: %d/%d\n", player_mp, player_maxmp);
+        printf("몬스터 체력: %d/%d\n", monster_hp, monster_maxhp);
 
         // 플레이어의 스킬 선택
-        printf("\n어떤 스킬을 사용하시겠습니까?\n");
-        printf("1. 일반 공격 (마나 20 회복)\n");  // 일반 공격에 마나 회복 설명 추가
+        printf("\n어떤 행동을 하시겠습니까?\n");
+        printf("1. 일반 공격 (마나 20 회복)\n");
         printf("2. 회복 (플레이어 체력 20 회복)\n");
-        printf("3. 스킬 목록\n");
+        printf("3. 스킬 목록\n");  // 항상 스킬 목록은 표시되지만, 들어가면 사용 가능한 스킬이 없다면 "사용할 수 있는 스킬이 없습니다."를 출력
         printf("0. 전투 이탈\n");
         printf("번호를 입력해주세요 : ");
         scanf_s("%d", &skill_choice);
 
         system("cls");
 
-        // 스킬 선택에 따른 행동
-        if (skill_choice == 1) // 일반 공격
-        {
+        if (skill_choice == 1) { // 일반 공격
             printf("%s의 공격! %s에게 %d의 피해를 입혔습니다.\n", player_name, monster_name, player_attack);
             monster_hp -= player_attack; // 괴물 HP를 플레이어 공격력만큼 뺀다
 
-            // 마나 회복 로직 추가
-            int mana_plus = 20;  // 일반 공격 시 회복할 마나 양
+            // 마나 회복
+            int mana_plus = 20;
             player_mp += mana_plus;
             if (player_mp > player_maxmp) player_mp = player_maxmp; // 최대 마나를 넘지 않도록 조정
             printf("일반 공격으로 마나가 %d 회복되었습니다. 현재 마나: %d/%d\n", mana_plus, player_mp, player_maxmp);
+
         }
-        else if (skill_choice == 2) // 회복
-        {
+        else if (skill_choice == 2) { // 체력 회복
             player_hp += 20;
-            if (player_hp > player_maxhp) player_hp = player_maxhp; // 최대 체력 넘지 않도록 조정
+            if (player_hp > player_maxhp) player_hp = player_maxhp;
             printf("%s가 체력을 20 회복했습니다! 현재 체력: %d/%d\n", player_name, player_hp, player_maxhp);
+
         }
-        else if (skill_choice == 3) // 스킬 목록
-        {
+        else if (skill_choice == 3) { // 스킬 목록
             Skill_Use();
+
         }
-        else if (skill_choice == 4) // 도망
-        {
+        else if (skill_choice == 0) { // 전투 이탈
             printf("전투에서 이탈합니다.\n");
             Sleep(1000);
             break;
+
         }
-        else // 잘못된 입력 처리
-        {
+        else { // 잘못된 입력
             printf("잘못된 선택입니다. 다시 시도해주세요.\n");
-            continue; // 몬스터의 턴 없이 다시 스킬 선택으로 돌아감
+            continue;
         }
 
         Sleep(1000);
-        if (monster_hp <= 0)
-        {
+        if (monster_hp <= 0) {
             printf("%s을(를) 물리쳤습니다!\n", monster_name);
             crystal++; // 크리스탈 획득
             printf("크리스탈을 1개 획득했습니다. 보유 크리스탈 : %d\n", crystal);
@@ -644,11 +667,10 @@ void enterDungeon(int* money)
 
         // 몬스터 턴
         printf("%s의 공격! 플레이어에게 %d의 피해를 입혔습니다.\n", monster_name, monster_attack);
-        player_hp -= monster_attack; // 플레이어 HP를 괴물의 공격력만큼 뺀다
-        if (player_hp <= 0)
-        {
+        player_hp -= monster_attack;
+        if (player_hp <= 0) {
             printf("%s이(가) 사망했습니다.\n", player_name);
-            exit(0); // 게임 종료
+            exit(0);
         }
 
         Sleep(1000);
